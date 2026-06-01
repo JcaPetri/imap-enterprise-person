@@ -3,6 +3,7 @@ package com.imap.person.infrastructure.config;
 import com.imap.person.infrastructure.security.JwtAuthFilter;
 import com.imap.person.infrastructure.tenant.TenantContextFilter;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -17,6 +18,13 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * Public endpoints: /ping, /actuator/**
  * All other endpoints require a valid Bearer JWT.
  * Stateless — no server-side sessions.
+ *
+ * Filter ordering strategy:
+ *  JwtAuthFilter and TenantContextFilter are @Component beans but their
+ *  servlet auto-registration is DISABLED via FilterRegistrationBean.enabled=false.
+ *  They run ONLY inside Spring Security's filter chain (via addFilterBefore),
+ *  which ensures SecurityContextHolderFilter runs first and the SecurityContext
+ *  set by JwtAuthFilter is visible to the AuthorizationFilter.
  */
 @Configuration
 @EnableWebSecurity
@@ -29,6 +37,28 @@ public class SecurityConfig {
                           TenantContextFilter tenantContextFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.tenantContextFilter = tenantContextFilter;
+    }
+
+    /**
+     * Prevent JwtAuthFilter from being registered as a standalone servlet filter.
+     * It must run only inside Spring Security's chain so SecurityContextHolderFilter
+     * initialises the context first.
+     */
+    @Bean
+    public FilterRegistrationBean<JwtAuthFilter> jwtFilterRegistration(JwtAuthFilter filter) {
+        FilterRegistrationBean<JwtAuthFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
+    }
+
+    /**
+     * Same: TenantContextFilter runs inside Security chain only.
+     */
+    @Bean
+    public FilterRegistrationBean<TenantContextFilter> tenantFilterRegistration(TenantContextFilter filter) {
+        FilterRegistrationBean<TenantContextFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
     }
 
     @Bean
@@ -50,7 +80,9 @@ public class SecurityConfig {
                         "{\"error\":\"Unauthorized\",\"message\":\"Valid Bearer token required.\"}");
                 })
             )
+            // TenantContextFilter before UsernamePasswordAuthenticationFilter
             .addFilterBefore(tenantContextFilter, UsernamePasswordAuthenticationFilter.class)
+            // JwtAuthFilter before TenantContextFilter
             .addFilterBefore(jwtAuthFilter, TenantContextFilter.class);
 
         return http.build();
