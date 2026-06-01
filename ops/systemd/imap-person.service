@@ -1,0 +1,30 @@
+[Unit]
+Description=IMAP Person Microservice
+Documentation=https://imaps.com.ar
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=personuser
+Group=personuser
+WorkingDirectory=/opt/imap/person
+EnvironmentFile=/opt/imap/person/.env
+ExecStart=/usr/bin/java -Xms128m -Xmx256m \
+    -Dspring.profiles.active=pdn \
+    -jar /opt/imap/person/person.jar
+ExecStop=/bin/kill -SIGTERM $MAINPID
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=imap-person
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/imap/person
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

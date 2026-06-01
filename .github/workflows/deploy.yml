@@ -1,0 +1,115 @@
+name: Deploy person backend to VPS
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - '**.md'
+      - '**.ps1'
+      - '.gitignore'
+      - 'docs/**'
+  workflow_dispatch:        # trigger manual desde la UI de Actions
+
+concurrency:
+  group: deploy-person-backend
+  cancel-in-progress: false # si llega otro mientras hay uno corriendo, espera
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 17 (Temurin) + Maven cache
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build jar (skip tests for now)
+        run: mvn -B -U package -DskipTests
+
+      - name: Verify jar exists
+        run: |
+          test -f target/person-0.0.1-SNAPSHOT.jar
+          ls -lh target/person-0.0.1-SNAPSHOT.jar
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add VPS host key to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p ${{ secrets.VPS_PORT }} -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: SCP jar to VPS /tmp
+        run: |
+          scp -P ${{ secrets.VPS_PORT }} \
+            target/person-0.0.1-SNAPSHOT.jar \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/person.jar.new
+
+      - name: Deploy + verify health + auto-rollback
+        run: |
+          ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} bash -s <<'REMOTE'
+            set -e
+            echo "[$(date)] Checking for previous jar (first deploy: no backup needed)..."
+            if [ -f /opt/imap/person/person.jar ]; then
+              echo "[$(date)] Backing up old jar..."
+              cp -p /opt/imap/person/person.jar /opt/imap/person/person.jar.bak
+            fi
+
+            echo "[$(date)] Installing new jar..."
+            mv /tmp/person.jar.new /opt/imap/person/person.jar
+            chown personuser:personuser /opt/imap/person/person.jar
+            chmod 640 /opt/imap/person/person.jar
+
+            echo "[$(date)] Restarting imap-person service..."
+            systemctl restart imap-person
+
+            echo "[$(date)] Waiting for health 200 (max 60s — first deploy + Flyway migrations)..."
+            for i in $(seq 1 30); do
+              sleep 2
+              STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/imap/person/actuator/health || echo "000")
+              if [ "$STATUS" = "200" ]; then
+                echo "[$(date)] OK Health OK after ${i} polls"
+                exit 0
+              fi
+              echo "[$(date)] poll #$i: HTTP $STATUS"
+            done
+
+            echo "[$(date)] FAIL Health check failed after 60s"
+            if [ -f /opt/imap/person/person.jar.bak ]; then
+              echo "[$(date)] Rolling back..."
+              mv /opt/imap/person/person.jar.bak /opt/imap/person/person.jar
+              systemctl restart imap-person
+              sleep 14
+              FINAL=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/imap/person/actuator/health || echo "000")
+              echo "[$(date)] After rollback, health = $FINAL"
+            else
+              echo "[$(date)] No backup available (first deploy) — inspect service logs:"
+              journalctl -u imap-person --no-pager -n 50
+            fi
+            exit 1
+          REMOTE
+
+      - name: External smoke test (https://imaps.com.ar)
+        run: |
+          for i in $(seq 1 5); do
+            STATUS=$(curl -s -o /dev/null -w '%{http_code}' https://imaps.com.ar/imap/person/actuator/health || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "OK External health check passed"
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $STATUS"
+            sleep 3
+          done
+          echo "WARN External health check failed (probably nginx location not configured yet)"
+          # No fail si nginx aun no tiene el location: la app puede estar OK en :8099 sin reverse proxy
+          exit 0
