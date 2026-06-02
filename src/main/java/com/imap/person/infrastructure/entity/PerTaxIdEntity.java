@@ -15,6 +15,9 @@ public class PerTaxIdEntity {
     @Column(name = "person_id", nullable = false)
     private UUID personId;
 
+    @Column(name = "tenant_id")
+    private UUID tenantId;
+
     @Column(name = "document_type_id", nullable = false)
     private UUID documentTypeId;
 
@@ -69,6 +72,8 @@ public class PerTaxIdEntity {
     public void setId(UUID id) { this.id = id; }
     public UUID getPersonId() { return personId; }
     public void setPersonId(UUID personId) { this.personId = personId; }
+    public UUID getTenantId() { return tenantId; }
+    public void setTenantId(UUID tenantId) { this.tenantId = tenantId; }
     public UUID getDocumentTypeId() { return documentTypeId; }
     public void setDocumentTypeId(UUID documentTypeId) { this.documentTypeId = documentTypeId; }
     public String getTaxIdValue() { return taxIdValue; }
