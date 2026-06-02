@@ -46,7 +46,9 @@ jq_len() {
 }
 
 # ── Cleanup helper ────────────────────────────────────────────────────────────
-PG_CMD="PGPASSWORD=07mePUkuzo psql -h 127.0.0.1 -U admindb -d iam -t -q"
+# NOTE: PGPASSWORD must be exported — VAR=value inside a string variable is not processed as env-prefix.
+export PGPASSWORD=07mePUkuzo
+PG_CMD="psql -h 127.0.0.1 -U admindb -d iam -t -q"
 do_cleanup() {
   # Run each statement in its own connection to avoid single-TX rollback on FK error.
   $PG_CMD -c "DELETE FROM person.per_fiscal_profile_tbl WHERE person_id IN (SELECT id FROM person.per_person_tbl WHERE legal_name IN ('Acme SA (smoke-p2)','Juan P (smoke-p2)'));" 2>/dev/null || true
