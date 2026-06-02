@@ -16,4 +16,17 @@ public interface PerTaxIdJpaRepository extends JpaRepository<PerTaxIdEntity, UUI
     Optional<PerTaxIdEntity> findCurrentByValue(@Param("value") String value);
 
     boolean existsByTaxIdValueAndCurrentTrue(String taxIdValue);
+
+    /** Look up an active tax ID record joining through per_document_type_tbl by dataelement_key. */
+    @Query(value = "SELECT t.* FROM person.per_tax_id_tbl t " +
+                   "JOIN person.per_document_type_tbl d ON t.document_type_id = d.id " +
+                   "WHERE d.dataelement_key = :docTypeKey " +
+                   "AND t.tax_id_value = :value AND t.is_current = true",
+           nativeQuery = true)
+    Optional<PerTaxIdEntity> findCurrentByDocTypeKeyAndValue(
+            @Param("docTypeKey") String docTypeKey,
+            @Param("value") String value);
+
+    /** Check whether an active record exists for a specific document_type_id + value. */
+    boolean existsByDocumentTypeIdAndTaxIdValueAndCurrentTrue(UUID documentTypeId, String taxIdValue);
 }
