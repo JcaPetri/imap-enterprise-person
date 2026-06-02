@@ -92,11 +92,14 @@ public class TaxIdService {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private TaxIdDto toDto(PerTaxIdEntity e, String docTypeKey) {
+        // is_current is a GENERATED ALWAYS column; derive it client-side
+        // to avoid stale Java field value after INSERT before DB refresh.
+        boolean current = e.getValidTo() == null;
         return new TaxIdDto(
             e.getId(), e.getPersonId(), e.getDocumentTypeId(),
             docTypeKey, e.getTaxIdValue(),
             e.getValidFrom(), e.getValidTo(),
-            e.isCurrent(), e.isActive(), e.getCreatedAt());
+            current, e.isActive(), e.getCreatedAt());
     }
 
     private PersonDto toPersonDto(PerPersonEntity e) {
