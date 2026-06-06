@@ -12,5 +12,6 @@ public record PersonDto(
     String tradeName,
     boolean active,
     OffsetDateTime createdAt,
-    OffsetDateTime updatedAt
+    OffsetDateTime updatedAt,
+    UUID countryId
 ) {}

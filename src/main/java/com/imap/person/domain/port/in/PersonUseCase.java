@@ -9,6 +9,7 @@ import java.util.UUID;
 
 public interface PersonUseCase {
     PersonDto create(CreatePersonRequest request);
+    PersonDto update(UUID id, CreatePersonRequest request);
     Optional<PersonDto> findById(UUID id);
     List<PersonSummaryDto> search(String query);
     List<PersonSummaryDto> findAll();

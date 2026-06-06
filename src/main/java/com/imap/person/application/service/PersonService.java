@@ -71,10 +71,23 @@ public class PersonService implements PersonUseCase {
         return toDto(repo.save(entity));
     }
 
+    @Override
+    @Transactional
+    public PersonDto update(UUID id, CreatePersonRequest request) {
+        PerPersonEntity entity = repo.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Person not found: " + id));
+        entity.setPersonType(request.personType());
+        entity.setLegalName(request.legalName());
+        entity.setTradeName(request.tradeName());
+        entity.setCountryId(request.countryId());
+        entity.setUpdatedAt(OffsetDateTime.now());
+        return toDto(repo.save(entity));
+    }
+
     private PersonDto toDto(PerPersonEntity e) {
         return new PersonDto(e.getId(), e.getTenantId(), e.getPersonType(),
             e.getLegalName(), e.getTradeName(), e.isActive(),
-            e.getCreatedAt(), e.getUpdatedAt());
+            e.getCreatedAt(), e.getUpdatedAt(), e.getCountryId());
     }
 
     private PersonSummaryDto toSummary(PerPersonEntity e) {

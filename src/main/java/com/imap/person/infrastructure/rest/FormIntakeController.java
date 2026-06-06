@@ -5,6 +5,7 @@ import com.imap.person.application.service.TaxIdService;
 import com.imap.person.domain.dto.CreateFiscalProfileRequest;
 import com.imap.person.domain.dto.CreatePersonRequest;
 import com.imap.person.domain.dto.CreateTaxIdRequest;
+import com.imap.person.domain.dto.PersonDto;
 import com.imap.person.domain.model.PersonType;
 import com.imap.person.domain.port.in.PersonUseCase;
 import org.springframework.http.HttpStatus;
@@ -12,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -51,6 +53,47 @@ public class FormIntakeController {
             default:
                 return ResponseEntity.badRequest().body(Map.of("error", "entityCode no soportado en intake: " + entityCode));
         }
+    }
+
+    /**
+     * GET form: precarga de un registro existente para EDICIÓN (payload PLANO, claves =
+     * field codes del registry). Soportado hoy para per_person; tax_id/fiscal = misma receta.
+     */
+    @GetMapping("/{entityCode}/{id}")
+    public ResponseEntity<Object> getForm(@PathVariable String entityCode, @PathVariable UUID id) {
+        if ("per_person".equals(entityCode)) {
+            return personUseCase.findById(id)
+                .map(p -> ResponseEntity.ok((Object) personToForm(p)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+        }
+        return ResponseEntity.status(501).body(Map.of("error", "get-form no soportado aún para: " + entityCode));
+    }
+
+    /** PATCH form: actualiza un registro existente vía el dominio del micro. */
+    @PatchMapping("/{entityCode}/{id}")
+    public ResponseEntity<Object> updateForm(@PathVariable String entityCode, @PathVariable UUID id,
+                                             @RequestBody Map<String, Object> form) {
+        if ("per_person".equals(entityCode)) {
+            String typeStr = str(form, "per_person_person_type");
+            if (typeStr == null) return bad("per_person_person_type es obligatorio");
+            PersonType type;
+            try { type = PersonType.valueOf(typeStr); }
+            catch (IllegalArgumentException e) { return bad("per_person_person_type inválido: " + typeStr); }
+            CreatePersonRequest req = new CreatePersonRequest(
+                type, str(form, "per_person_legal_name"), str(form, "per_person_trade_name"),
+                uuid(form, "per_person_country_id"));
+            return ResponseEntity.ok(personUseCase.update(id, req));
+        }
+        return ResponseEntity.status(501).body(Map.of("error", "update-form no soportado aún para: " + entityCode));
+    }
+
+    private Map<String, Object> personToForm(PersonDto p) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("per_person_person_type", p.personType() != null ? p.personType().name() : null);
+        m.put("per_person_legal_name", p.legalName());
+        m.put("per_person_trade_name", p.tradeName());
+        m.put("per_person_country_id", p.countryId() != null ? p.countryId().toString() : null);
+        return m;
     }
 
     private ResponseEntity<Object> createPerson(Map<String, Object> form) {

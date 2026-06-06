@@ -106,6 +106,6 @@ public class TaxIdService {
         return new PersonDto(
             e.getId(), e.getTenantId(), e.getPersonType(),
             e.getLegalName(), e.getTradeName(), e.isActive(),
-            e.getCreatedAt(), e.getUpdatedAt());
+            e.getCreatedAt(), e.getUpdatedAt(), e.getCountryId());
     }
 }
