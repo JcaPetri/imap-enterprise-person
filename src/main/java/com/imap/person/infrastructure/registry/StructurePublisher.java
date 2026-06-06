@@ -44,30 +44,55 @@ public class StructurePublisher {
         this.tokenProvider = tokenProvider;
     }
 
+    private static final int MAX_ATTEMPTS = 12;
+    private static final long RETRY_DELAY_MS = 15_000;
+
     @EventListener(ApplicationReadyEvent.class)
     public void publishOnStartup() {
         if (!enabled) { log.info("StructurePublisher deshabilitado (imap.registry.publish.enabled=false)"); return; }
-        String token = tokenProvider.currentToken();
-        if (token == null) { log.warn("StructurePublisher: sin token de servicio (jwt.access.secret) — no publica"); return; }
+        // En thread daemon para NO bloquear el arranque + reintentar si system está
+        // momentáneamente caído (ej. deploy simultáneo de system + person).
+        Thread t = new Thread(this::publishWithRetry, "uxd-structure-publisher");
+        t.setDaemon(true);
+        t.start();
+    }
 
-        WebClient client = WebClient.builder().baseUrl(systemBaseUrl).build();
-        for (Map<String, Object> descriptor : descriptors()) {
-            String code = ((Map<?, ?>) descriptor.get("entity")).get("code").toString();
-            try {
-                String resp = client.post()
-                    .uri("/v1/registry/structures")
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                    .header("X-Tenant-Id", SYSTEM_TENANT)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(descriptor)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block(Duration.ofSeconds(15));
-                log.info("Schema Registry: publicada estructura '{}' → {}", code, resp);
-            } catch (Exception e) {
-                log.warn("Schema Registry: falló publicar '{}': {}", code, e.getMessage());
+    private void publishWithRetry() {
+        List<Map<String, Object>> pending = descriptors();
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS && !pending.isEmpty(); attempt++) {
+            String token = tokenProvider.currentToken();
+            if (token == null) { log.warn("StructurePublisher: sin token de servicio — no publica"); return; }
+            WebClient client = WebClient.builder().baseUrl(systemBaseUrl).build();
+
+            List<Map<String, Object>> stillPending = new ArrayList<>();
+            for (Map<String, Object> descriptor : pending) {
+                String code = ((Map<?, ?>) descriptor.get("entity")).get("code").toString();
+                try {
+                    String resp = client.post()
+                        .uri("/v1/registry/structures")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .header("X-Tenant-Id", SYSTEM_TENANT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(descriptor)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .block(Duration.ofSeconds(15));
+                    log.info("Schema Registry: publicada estructura '{}' → {}", code, resp);
+                } catch (Exception e) {
+                    stillPending.add(descriptor);
+                    if (attempt == MAX_ATTEMPTS) {
+                        log.warn("Schema Registry: falló publicar '{}' tras {} intentos: {}", code, MAX_ATTEMPTS, e.getMessage());
+                    } else {
+                        log.info("Schema Registry: '{}' aún no publicada (intento {}/{}): {}", code, attempt, MAX_ATTEMPTS, e.getMessage());
+                    }
+                }
+            }
+            pending = stillPending;
+            if (!pending.isEmpty() && attempt < MAX_ATTEMPTS) {
+                try { Thread.sleep(RETRY_DELAY_MS); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); return; }
             }
         }
+        if (pending.isEmpty()) log.info("Schema Registry: todas las estructuras publicadas OK");
     }
 
     // ── descriptores (hand-declared; futuro: auto-derive de las entities JPA) ──
