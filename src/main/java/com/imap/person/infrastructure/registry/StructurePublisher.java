@@ -83,14 +83,18 @@ public class StructurePublisher {
         )));
 
         out.add(entity("per_tax_id", "Identificación fiscal", "person", List.of(
-            field("per_tax_id_value",            "Número fiscal (CUIT/DNI/...)", "string", 1, true, null, List.of()),
-            field("per_tax_id_document_type_id", "Tipo de documento", "uuid", 2, true, null, List.of()),
-            field("per_tax_id_country_id",       "País", "fk", 3, false, "country", List.of())
+            field("per_tax_id_person_id",          "Persona", "fk", 1, true, "per_person", List.of()),
+            field("per_tax_id_document_type_key",  "Tipo de documento (CUIT/DNI/...)", "string", 2, true, null, List.of("ValidStringMax30")),
+            field("per_tax_id_value",              "Número fiscal", "string", 3, true, null, List.of()),
+            field("per_tax_id_country_id",         "País", "fk", 4, false, "country", List.of()),
+            field("per_tax_id_valid_from",         "Vigente desde", "date", 5, false, null, List.of())
         )));
 
         out.add(entity("per_fiscal_profile", "Perfil fiscal", "person", List.of(
-            field("per_fiscal_profile_organism_code",   "Organismo", "string", 1, true, null, List.of("ValidStringMax30")),
-            field("per_fiscal_profile_fiscal_position", "Condición fiscal", "string", 2, true, null, List.of("ValidStringMax30"))
+            field("per_fiscal_profile_person_id",        "Persona", "fk", 1, true, "per_person", List.of()),
+            field("per_fiscal_profile_organism_code",    "Organismo", "string", 2, true, null, List.of("ValidStringMax30")),
+            field("per_fiscal_profile_fiscal_position",  "Condición fiscal", "string", 3, true, null, List.of("ValidStringMax30")),
+            field("per_fiscal_profile_registered_since", "Inscripto desde", "date", 4, false, null, List.of())
         )));
 
         return out;
