@@ -6,6 +6,8 @@ import com.imap.person.domain.dto.CreateFiscalProfileRequest;
 import com.imap.person.domain.dto.CreatePersonRequest;
 import com.imap.person.domain.dto.CreateTaxIdRequest;
 import com.imap.person.domain.dto.PersonDto;
+import com.imap.person.domain.dto.PersonSummaryDto;
+import java.util.List;
 import com.imap.person.domain.model.PersonType;
 import com.imap.person.domain.port.in.PersonUseCase;
 import org.springframework.http.HttpStatus;
@@ -53,6 +55,28 @@ public class FormIntakeController {
             default:
                 return ResponseEntity.badRequest().body(Map.of("error", "entityCode no soportado en intake: " + entityCode));
         }
+    }
+
+    /**
+     * GET list (Fase 3 — tablas/reportes federados): lista registros como payloads PLANOS
+     * (claves = field codes + id). Soportado para per_person; tax_id/fiscal = misma receta.
+     */
+    @GetMapping("/{entityCode}")
+    public ResponseEntity<Object> listForm(@PathVariable String entityCode) {
+        if ("per_person".equals(entityCode)) {
+            List<Map<String, Object>> out = personUseCase.findAll().stream().map(this::summaryToForm).toList();
+            return ResponseEntity.ok(out);
+        }
+        return ResponseEntity.status(501).body(Map.of("error", "list-form no soportado aún para: " + entityCode));
+    }
+
+    private Map<String, Object> summaryToForm(PersonSummaryDto s) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", s.id());
+        m.put("per_person_person_type", s.personType() != null ? s.personType().name() : null);
+        m.put("per_person_legal_name", s.legalName());
+        m.put("per_person_trade_name", s.tradeName());
+        return m;
     }
 
     /**
