@@ -1,7 +1,7 @@
 package com.imap.person.infrastructure.config;
 
 import com.imap.person.infrastructure.security.JwtAuthFilter;
-import com.imap.person.infrastructure.tenant.TenantContextFilter;
+import com.imap.platform.tenant.TenantContextFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -10,7 +10,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 
 /**
  * Spring Security configuration for imap-person.
@@ -80,10 +80,10 @@ public class SecurityConfig {
                         "{\"error\":\"Unauthorized\",\"message\":\"Valid Bearer token required.\"}");
                 })
             )
-            // TenantContextFilter before UsernamePasswordAuthenticationFilter
-            .addFilterBefore(tenantContextFilter, UsernamePasswordAuthenticationFilter.class)
-            // JwtAuthFilter before TenantContextFilter
-            .addFilterBefore(jwtAuthFilter, TenantContextFilter.class);
+            // Filtros DESPUÉS del ExceptionTranslationFilter (antes de AuthorizationFilter) →
+            // sus respuestas (401/403) sobreviven. jwt primero (SecurityContext), luego tenant.
+            .addFilterBefore(jwtAuthFilter, AuthorizationFilter.class)
+            .addFilterBefore(tenantContextFilter, AuthorizationFilter.class);
 
         return http.build();
     }

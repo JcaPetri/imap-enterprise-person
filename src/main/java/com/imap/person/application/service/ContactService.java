@@ -5,7 +5,7 @@ import com.imap.person.domain.dto.CreateContactRequest;
 import com.imap.person.infrastructure.entity.PerContactEntity;
 import com.imap.person.infrastructure.repository.PerContactJpaRepository;
 import com.imap.person.infrastructure.repository.PerPersonJpaRepository;
-import com.imap.person.infrastructure.tenant.TenantContextHolder;
+import com.imap.platform.tenant.TenantContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

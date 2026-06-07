@@ -7,7 +7,7 @@ import com.imap.person.infrastructure.entity.PerIamLinkEntity;
 import com.imap.person.infrastructure.entity.PerPersonEntity;
 import com.imap.person.infrastructure.repository.PerIamLinkJpaRepository;
 import com.imap.person.infrastructure.repository.PerPersonJpaRepository;
-import com.imap.person.infrastructure.tenant.TenantContextHolder;
+import com.imap.platform.tenant.TenantContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

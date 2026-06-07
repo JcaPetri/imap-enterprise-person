@@ -5,7 +5,7 @@ import com.imap.person.domain.dto.UpsertNaturalDetailRequest;
 import com.imap.person.infrastructure.entity.PerNaturalDetailEntity;
 import com.imap.person.infrastructure.repository.PerNaturalDetailJpaRepository;
 import com.imap.person.infrastructure.repository.PerPersonJpaRepository;
-import com.imap.person.infrastructure.tenant.TenantContextHolder;
+import com.imap.platform.tenant.TenantContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

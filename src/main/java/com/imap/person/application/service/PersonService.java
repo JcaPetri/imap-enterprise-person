@@ -6,7 +6,7 @@ import com.imap.person.domain.dto.PersonSummaryDto;
 import com.imap.person.domain.port.in.PersonUseCase;
 import com.imap.person.domain.port.out.PersonRepositoryPort;
 import com.imap.person.infrastructure.entity.PerPersonEntity;
-import com.imap.person.infrastructure.tenant.TenantContextHolder;
+import com.imap.platform.tenant.TenantContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;

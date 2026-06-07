@@ -5,7 +5,7 @@ import com.imap.person.domain.dto.CreateAddressRequest;
 import com.imap.person.infrastructure.entity.PerAddressEntity;
 import com.imap.person.infrastructure.repository.PerAddressJpaRepository;
 import com.imap.person.infrastructure.repository.PerPersonJpaRepository;
-import com.imap.person.infrastructure.tenant.TenantContextHolder;
+import com.imap.platform.tenant.TenantContextHolder;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;

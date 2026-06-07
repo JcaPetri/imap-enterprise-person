@@ -1,6 +1,10 @@
 package com.imap.person.infrastructure.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.imap.platform.security.BearerTokenHolder;
+import com.imap.platform.security.JwtAccessTokenValidator;
+import com.imap.platform.security.UserContext;
+import com.imap.platform.security.UserContextHolder;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
