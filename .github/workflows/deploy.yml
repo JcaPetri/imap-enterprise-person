@@ -80,8 +80,8 @@ jobs:
             echo "[$(date)] Restarting imap-person service..."
             systemctl restart imap-person
 
-            echo "[$(date)] Waiting for health 200 (max 60s — first deploy + Flyway migrations)..."
-            for i in $(seq 1 30); do
+            echo "[$(date)] Waiting for health 200 (max 120s — first deploy + Flyway migrations)..."
+            for i in $(seq 1 60); do
               sleep 2
               STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/imap/person/actuator/health || echo "000")
               if [ "$STATUS" = "200" ]; then
