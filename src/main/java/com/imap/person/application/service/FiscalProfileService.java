@@ -5,6 +5,7 @@ import com.imap.person.domain.dto.FiscalProfileDto;
 import com.imap.person.infrastructure.entity.PerFiscalProfileEntity;
 import com.imap.person.infrastructure.repository.PerFiscalProfileJpaRepository;
 import com.imap.person.infrastructure.repository.PerPersonJpaRepository;
+import com.imap.person.infrastructure.tenant.TenantContextService;
 import com.imap.platform.tenant.TenantContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -21,16 +22,20 @@ public class FiscalProfileService {
 
     private final PerFiscalProfileJpaRepository profileRepo;
     private final PerPersonJpaRepository        personRepo;
+    private final TenantContextService          tenantContext;
 
     public FiscalProfileService(PerFiscalProfileJpaRepository profileRepo,
-                                PerPersonJpaRepository personRepo) {
+                                PerPersonJpaRepository personRepo,
+                                TenantContextService tenantContext) {
         this.profileRepo = profileRepo;
         this.personRepo  = personRepo;
+        this.tenantContext = tenantContext;
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
 
     public FiscalProfileDto create(UUID personId, CreateFiscalProfileRequest req) {
+        tenantContext.setContext(TenantContextHolder.get());
         personRepo.findById(personId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                 "Person not found: " + personId));
@@ -55,6 +60,7 @@ public class FiscalProfileService {
 
     @Transactional(readOnly = true)
     public List<FiscalProfileDto> listByPerson(UUID personId) {
+        tenantContext.setContext(TenantContextHolder.get());
         return profileRepo.findByPersonIdAndActiveTrue(personId)
             .stream().map(this::toDto).toList();
     }

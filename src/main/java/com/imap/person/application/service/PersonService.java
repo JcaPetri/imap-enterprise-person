@@ -6,6 +6,7 @@ import com.imap.person.domain.dto.PersonSummaryDto;
 import com.imap.person.domain.port.in.PersonUseCase;
 import com.imap.person.domain.port.out.PersonRepositoryPort;
 import com.imap.person.infrastructure.entity.PerPersonEntity;
+import com.imap.person.infrastructure.tenant.TenantContextService;
 import com.imap.platform.tenant.TenantContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,15 +19,18 @@ import java.util.UUID;
 public class PersonService implements PersonUseCase {
 
     private final PersonRepositoryPort repo;
+    private final TenantContextService tenantContext;
 
-    public PersonService(PersonRepositoryPort repo) {
+    public PersonService(PersonRepositoryPort repo, TenantContextService tenantContext) {
         this.repo = repo;
+        this.tenantContext = tenantContext;
     }
 
     @Override
     @Transactional
     public PersonDto create(CreatePersonRequest request) {
         UUID tenantId = TenantContextHolder.get();
+        tenantContext.setContext(tenantId);   // S7: setea el GUC RLS dentro de la tx
         PerPersonEntity entity = new PerPersonEntity();
         entity.setId(UUID.randomUUID());
         entity.setTenantId(tenantId);
@@ -43,20 +47,26 @@ public class PersonService implements PersonUseCase {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<PersonDto> findById(UUID id) {
+        tenantContext.setContext(TenantContextHolder.get());
         return repo.findById(id).map(this::toDto);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<PersonSummaryDto> search(String query) {
         UUID tenantId = TenantContextHolder.get();
+        tenantContext.setContext(tenantId);
         return repo.searchByName(query, tenantId)
             .stream().map(this::toSummary).toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<PersonSummaryDto> findAll() {
         UUID tenantId = TenantContextHolder.get();
+        tenantContext.setContext(tenantId);
         return repo.findByTenantId(tenantId)
             .stream().map(this::toSummary).toList();
     }
@@ -64,6 +74,7 @@ public class PersonService implements PersonUseCase {
     @Override
     @Transactional
     public PersonDto deactivate(UUID id) {
+        tenantContext.setContext(TenantContextHolder.get());
         PerPersonEntity entity = repo.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Person not found: " + id));
         entity.setActive(false);
@@ -74,6 +85,7 @@ public class PersonService implements PersonUseCase {
     @Override
     @Transactional
     public PersonDto update(UUID id, CreatePersonRequest request) {
+        tenantContext.setContext(TenantContextHolder.get());
         PerPersonEntity entity = repo.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Person not found: " + id));
         entity.setPersonType(request.personType());

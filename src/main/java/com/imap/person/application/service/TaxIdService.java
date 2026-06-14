@@ -8,6 +8,7 @@ import com.imap.person.infrastructure.entity.PerTaxIdEntity;
 import com.imap.person.infrastructure.repository.PerDocumentTypeJpaRepository;
 import com.imap.person.infrastructure.repository.PerPersonJpaRepository;
 import com.imap.person.infrastructure.repository.PerTaxIdJpaRepository;
+import com.imap.person.infrastructure.tenant.TenantContextService;
 import com.imap.platform.tenant.TenantContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,18 +26,22 @@ public class TaxIdService {
     private final PerTaxIdJpaRepository      taxIdRepo;
     private final PerPersonJpaRepository     personRepo;
     private final PerDocumentTypeJpaRepository docTypeRepo;
+    private final TenantContextService       tenantContext;
 
     public TaxIdService(PerTaxIdJpaRepository taxIdRepo,
                         PerPersonJpaRepository personRepo,
-                        PerDocumentTypeJpaRepository docTypeRepo) {
+                        PerDocumentTypeJpaRepository docTypeRepo,
+                        TenantContextService tenantContext) {
         this.taxIdRepo   = taxIdRepo;
         this.personRepo  = personRepo;
         this.docTypeRepo = docTypeRepo;
+        this.tenantContext = tenantContext;
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
 
     public TaxIdDto create(UUID personId, CreateTaxIdRequest req) {
+        tenantContext.setContext(TenantContextHolder.get());
         personRepo.findById(personId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                 "Person not found: " + personId));
@@ -72,6 +77,7 @@ public class TaxIdService {
 
     @Transactional(readOnly = true)
     public List<TaxIdDto> listByPerson(UUID personId) {
+        tenantContext.setContext(TenantContextHolder.get());
         return taxIdRepo.findByPersonIdAndActiveTrue(personId)
             .stream().map(t -> toDto(t, null)).toList();
     }
@@ -80,6 +86,7 @@ public class TaxIdService {
 
     @Transactional(readOnly = true)
     public PersonDto findByCuit(String cuit) {
+        tenantContext.setContext(TenantContextHolder.get());
         var taxId = taxIdRepo.findCurrentByDocTypeKeyAndValue("CUIT", cuit)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                 "No active CUIT found: " + cuit));
