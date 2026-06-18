@@ -1,7 +1,7 @@
 package com.imap.person.infrastructure.rest;
 
+import com.imap.person.application.service.DataelementService;
 import com.imap.person.infrastructure.entity.PerDataelementEntity;
-import com.imap.person.infrastructure.repository.PerDataelementJpaRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -10,15 +10,15 @@ import java.util.List;
 @RequestMapping("/v1/dataelements")
 public class DataelementController {
 
-    private final PerDataelementJpaRepository repo;
+    private final DataelementService service;
 
-    public DataelementController(PerDataelementJpaRepository repo) {
-        this.repo = repo;
+    public DataelementController(DataelementService service) {
+        this.service = service;
     }
 
     @GetMapping
     public ResponseEntity<List<PerDataelementEntity>> findByCategory(
             @RequestParam String category) {
-        return ResponseEntity.ok(repo.findByCategoryAndActiveTrue(category));
+        return ResponseEntity.ok(service.findByCategory(category));
     }
 }
