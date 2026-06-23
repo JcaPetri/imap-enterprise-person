@@ -78,8 +78,6 @@ public class PerTaxIdEntity {
     @Column(name = "owned_by_id")
     private UUID ownedById;
 
-    @Column(name = "timezone_id")
-    private UUID timezoneId;
 
     @Column(name = "table_history")
     private String tableHistory;
@@ -120,8 +118,6 @@ public class PerTaxIdEntity {
     public void setUpdatedById(UUID updatedById) { this.updatedById = updatedById; }
     public UUID getOwnedById() { return ownedById; }
     public void setOwnedById(UUID ownedById) { this.ownedById = ownedById; }
-    public UUID getTimezoneId() { return timezoneId; }
-    public void setTimezoneId(UUID timezoneId) { this.timezoneId = timezoneId; }
     public String getTableHistory() { return tableHistory; }
     public void setTableHistory(String tableHistory) { this.tableHistory = tableHistory; }
     public UUID getDataLanguageId() { return dataLanguageId; }
