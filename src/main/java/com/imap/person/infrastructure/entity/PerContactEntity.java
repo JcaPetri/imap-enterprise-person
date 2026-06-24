@@ -78,11 +78,7 @@ public class PerContactEntity {
     private UUID ownedById;
 
 
-    @Column(name = "table_history")
-    private String tableHistory;
 
-    @Column(name = "data_language_id")
-    private UUID dataLanguageId;
 
     public PerContactEntity() {}
 
@@ -118,8 +114,4 @@ public class PerContactEntity {
     public void setUpdatedById(UUID updatedById) { this.updatedById = updatedById; }
     public UUID getOwnedById() { return ownedById; }
     public void setOwnedById(UUID ownedById) { this.ownedById = ownedById; }
-    public String getTableHistory() { return tableHistory; }
-    public void setTableHistory(String tableHistory) { this.tableHistory = tableHistory; }
-    public UUID getDataLanguageId() { return dataLanguageId; }
-    public void setDataLanguageId(UUID dataLanguageId) { this.dataLanguageId = dataLanguageId; }
 }
